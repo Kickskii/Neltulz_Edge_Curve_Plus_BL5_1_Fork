@@ -1,14 +1,14 @@
 bl_info = {
-    "name" : "Neltulz - Edge Curve",
+    "name" : "Neltulz - Edge Curve(fork)",
     "author" : "Neil V. Moore",
     "description" : "Allows you to quickly insert edge loops with flow (Requires edge flow addon)",
-    "blender" : (5, 0, 0),
+    "blender" : (5, 1, 0),
     "version" : (1, 0, 8),
     "location" : "View3D",
     "warning" : "",
     "category" : "3D View",
-    "tracker_url": "https://github.com/YOUR-USERNAME/Edge-Curve-Plus/issues",
-    "doc_url": "https://github.com/YOUR-USERNAME/Edge-Curve-Plus/wiki"
+    "tracker_url": "https://github.com/Kickskii/Neltulz_Edge_Curve_Plus_BL5.1_Fork/issues",
+    "doc_url": "https://github.com/Kickskii/Neltulz_Edge_Curve_Plus_BL5.1_Fork/"
 }
 
 import bpy
