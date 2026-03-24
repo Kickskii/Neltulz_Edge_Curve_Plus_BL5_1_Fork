@@ -1,6 +1,6 @@
 bl_info = {
     "name" : "Neltulz - Edge Curve(fork)",
-    "author" : "Neil V. Moore",
+    "author" : "(Author)Neil V. Moore (Maintainer for the fork)Kick Skii",
     "description" : "Allows you to quickly insert edge loops with flow (Requires edge flow addon)",
     "blender" : (5, 1, 0),
     "version" : (1, 0, 8),
