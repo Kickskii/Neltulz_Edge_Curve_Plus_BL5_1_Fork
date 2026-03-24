@@ -1,5 +1,5 @@
 import bpy
-        
+import bmesh
 
 # -----------------------------------------------------------------------------
 #   Determine which mode is currently Selected (Vert, Edge, Face, etc)
@@ -7,68 +7,28 @@ import bpy
 # -----------------------------------------------------------------------------
 
 def getCurrentSelectMode(self, context):
-    #Create empty list
-    tempList = []
-
-    #check current mesh select mode
-    for bool in bpy.context.tool_settings.mesh_select_mode:
-        tempList.append(bool)
-    
-    #convert list into a tuple
-    tempTuple = tuple(tempList)
-
-    currentSelectMode = int()
-
+    tempTuple = tuple(context.tool_settings.mesh_select_mode)
     
     if tempTuple == (True, False, False):       
-        currentSelectMode = 1
+        return 1
     elif tempTuple == (False, True, False):
-        currentSelectMode = 2
+        return 2
     elif tempTuple == (False, False, True):
-        currentSelectMode = 3
-    else:
-        pass #(defaults currentSelectMode to 0)
-
-    return currentSelectMode
-# END getCurrentSelectMode(self, context)
-
+        return 3
+    
+    return 0
 
 def getSelectedVerts(self, context, obj):
-    mesh = obj.data
-
-    #switch to object mode before getting edgeList
-    bpy.ops.object.mode_set(mode='OBJECT')
-
-    vertList = [v for v in mesh.vertices if v.select]
-
-    #switch back to edit mode
-    bpy.ops.object.mode_set(mode='EDIT')
-        
-    return vertList
+    bm = bmesh.from_edit_mesh(obj.data)
+    bm.verts.ensure_lookup_table()
+    return [v.index for v in bm.verts if v.select]
 
 def getSelectedEdges(self, context, obj):
-    mesh = obj.data
-
-    #switch to object mode before getting edgeList
-    bpy.ops.object.mode_set(mode='OBJECT')
-
-    edgeList = [e for e in mesh.edges if e.select]
-
-    #switch back to edit mode
-    bpy.ops.object.mode_set(mode='EDIT')
-        
-    return edgeList
+    bm = bmesh.from_edit_mesh(obj.data)
+    bm.edges.ensure_lookup_table()
+    return [e.index for e in bm.edges if e.select]
 
 def getAllEdges(self, context, obj):
-    mesh = obj.data
-
-    #switch to object mode before getting edgeList
-    bpy.ops.object.mode_set(mode='OBJECT')
-
-    edgeList = [e for e in mesh.edges]
-    #edgeList = list(filter(lambda e: e, mesh.edges))
-
-    #switch back to edit mode
-    bpy.ops.object.mode_set(mode='EDIT')
-        
-    return edgeList
+    bm = bmesh.from_edit_mesh(obj.data)
+    bm.edges.ensure_lookup_table()
+    return [e.index for e in bm.edges]

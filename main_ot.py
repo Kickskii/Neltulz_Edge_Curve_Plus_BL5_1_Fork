@@ -1,8 +1,7 @@
 import bpy
 from . properties import NTZEDGCRV_ignitproperties
 from . import misc_functions
-from . import misc_layout
-
+import bmesh
 from bpy.props import (StringProperty, BoolProperty, IntProperty, FloatProperty, FloatVectorProperty, EnumProperty, PointerProperty)
 from bpy.types import (Panel, Operator, AddonPreferences, PropertyGroup)
 
@@ -73,33 +72,18 @@ class NTZEDGCRV_OT_insertedges(bpy.types.Operator):
 
 
     def draw(self, context):
-        scn = context.scene
-        layout = self.layout.column(align=True)
+        layout = self.layout
+        layout.use_property_split = True
+        
+        col = layout.column(align=True)
+        col.prop(self, "numSegments")
+        col.prop(self, "useEdgeFlow")
 
-        layout.separator()
-
-        layout.prop(self, "numSegments", slider=True)
-
-        layout.separator()
-
-        edgeFlowOptionsEnabled = False #declare
         if self.useEdgeFlow:
-            edgeFlowOptionsEnabled = True
-
-        misc_layout.createShowHide(self, context, None, None, "showEdgeFlowOptions", "useEdgeFlow", "Use Edge Flow", layout)
-
-        if self.showEdgeFlowOptions:
-
-            edgeFlowSection = layout.column(align=True)
-
-            edgeFlowSection.separator()
-
-            edgeFlowOptionsCol = edgeFlowSection.column(align=True)
-            edgeFlowOptionsCol.enabled = edgeFlowOptionsEnabled
-
-            edgeFlowOptionsCol.prop(self, "tension", slider=edgeFlowOptionsEnabled)
-            edgeFlowOptionsCol.prop(self, "numIterations", slider=edgeFlowOptionsEnabled)
-            edgeFlowOptionsCol.prop(self, "minAngle", slider=edgeFlowOptionsEnabled)
+            box = col.box().column(align=True)
+            box.prop(self, "tension")
+            box.prop(self, "numIterations")
+            box.prop(self, "minAngle")
 
     #END draw()
 
@@ -133,52 +117,48 @@ class NTZEDGCRV_OT_insertedges(bpy.types.Operator):
                 bpy.context.view_layer.objects.active = obj
                 obj.select_set(True)
 
-            selectedVerts = misc_functions.getSelectedVerts(self, context, obj)
-            if len(selectedVerts) > 0:
+            selectedVertIndices = misc_functions.getSelectedVerts(self, context, obj)
+            if len(selectedVertIndices) > 0:
                 
-                selectedEdges = misc_functions.getSelectedEdges(self, context, obj)
-                selectedEdgeIndices = list()
-
-                for edge in selectedEdges:
-                    selectedEdgeIndices.append(edge.index)
-
-
-                
-
+                selectedEdgeIndices = misc_functions.getSelectedEdges(self, context, obj)
                 totalNewEdgeLoopIndices = list()
 
-
                 for edgeIndex in set(selectedEdgeIndices):
-
+                    # Execute the loopcut
                     bpy.ops.mesh.loopcut(number_cuts=self.numSegments, object_index=0, edge_index=edgeIndex, mesh_select_mode_init=(False, True, False))
 
-                    newEdges = misc_functions.getSelectedEdges(self, context, obj)
-                    newEdgeIndices = list()
-                    for edge in newEdges:
-                        newEdgeIndices.append(edge.index)
+                    # Grab the new indices immediately after the cut
+                    newEdgeIndices = misc_functions.getSelectedEdges(self, context, obj)
+                    totalNewEdgeLoopIndices = list(set(totalNewEdgeLoopIndices).union(set(newEdgeIndices)))
 
-                    totalNewEdgeLoopIndices = list( set(totalNewEdgeLoopIndices).union(newEdgeIndices) )
-
+                # Clear old selection
                 bpy.ops.mesh.select_all(action='DESELECT')
                 
-                totalEdges = misc_functions.getAllEdges(self, context, obj)
+                # Use BMesh to select the newly created edge loops directly in Edit Mode
+                bm = bmesh.from_edit_mesh(obj.data)
+                bm.edges.ensure_lookup_table()
                 
-                #switch to object mode
-                bpy.ops.object.mode_set(mode='OBJECT')
-
-                for i in range( len(totalNewEdgeLoopIndices) ):
-                    obj.data.edges[ totalNewEdgeLoopIndices[i] ].select = True
-
-                #switch to edit mode
-                bpy.ops.object.mode_set(mode='EDIT')
+                for i in totalNewEdgeLoopIndices:
+                    try:
+                        bm.edges[i].select = True
+                    except IndexError:
+                        pass # Safety catch in case topology indices shifted
                 
+                # Flush the selection update back to the viewport
+                bmesh.update_edit_mesh(obj.data)
                 
-                #detect if EdgeFlow addon is installed and enabled
+                # Detect if EdgeFlow addon is installed and execute it
                 if self.useEdgeFlow:
                     try:
+                        # Patch EdgeFlow's class in memory to bypass the AttributeError
+                        if hasattr(bpy.types, "MESH_OT_set_edge_flow"):
+                            bpy.types.MESH_OT_set_edge_flow.is_invoked = False
+                        
+                        # Call normally (EXEC_DEFAULT). This forces EdgeFlow to initialize safely
+                        # without overwriting our variables with its defaults.
                         bpy.ops.mesh.set_edge_flow(tension=self.tension, iterations=self.numIterations, min_angle=self.minAngle)
-                    except:
-                        self.report({'ERROR'}, 'The "EdgeFlow" add-on could not be found.  Please check to see if the Edge Flow addon is installed and enabled.' )
+                    except Exception as e:
+                        self.report({'ERROR'}, f'EdgeFlow failed: {str(e)}')
 
 
         #reselect all originally selected objects, and then set the active object as the original active object
@@ -217,10 +197,3 @@ class NTZEDGCRV_OT_insertedges(bpy.types.Operator):
     #END invoke()
 
 # END Operator()
-
-
-
-
-
-
-
