@@ -5,5 +5,5 @@ Blender Addon that allows you to quickly insert edge loops with flow. (Works wit
 [Latest Version](https://github.com/Kickskii/Neltulz_Edge_Curve_Plus_BL5_1_Fork/releases)
 (You can also download the repo as a zip and install it in blender)
 
-# Documentation
+## Documentation
 Documentation is included with the addon, please open the included HTML file or click the provided documentation button after installing the addon for addon contents
